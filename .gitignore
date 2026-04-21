@@ -1,0 +1,54 @@
+# Binaries
+dupefinder
+dupefinder.exe
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build output
+/bin/
+/dist/
+*.out
+
+# Test binary and coverage
+*.test
+*.cover
+coverage.out
+coverage.html
+
+# Go workspace (Go 1.18+)
+go.work
+go.work.sum
+
+# Dependency cache (not committed — reproduced via go mod download)
+/vendor/
+
+# Environment and secrets
+.env
+.env.local
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Profiling output (from go tool pprof)
+*.prof
+cpu.out
+mem.out
+trace.out
+
+# Test data generated during runs (keep static testdata/ committed)
+/testdata/tmp/
+node_modules/
+.phases/
