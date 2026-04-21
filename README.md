@@ -59,3 +59,5 @@ GoReleaser report `dev` as the version:
 secretscanner --version
 # secretscanner version dev
 ```
+
+
