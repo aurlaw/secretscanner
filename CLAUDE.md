@@ -43,7 +43,7 @@ cmd/secretscanner/   Cobra root command — wires everything together
 
 ---
 
-## What is already implemented (Phases 1 & 2)
+## What is already implemented (Phases 1–4)
 
 ### `internal/version`
 - `var Version = "dev"`, `var Commit = "unknown"` — stamped at build time
@@ -59,6 +59,14 @@ cmd/secretscanner/   Cobra root command — wires everything together
 - `type RawPattern struct` — `Name`, `Description`, `Regex string`, `Severity string` with `yaml` tags
 - `type Pattern struct` — `Name`, `Description`, `Regex *regexp.Regexp`, `Severity findings.Severity`
 - `func Compile(raw RawPattern) (Pattern, error)` — compiles regex, parses severity, wraps errors
+- `func BuiltinPatterns() []Pattern` — returns all 15 compiled built-in patterns; do not mutate the returned slice
+
+### `internal/config`
+- `type PatternConfig struct { Disable []string; Add []patterns.RawPattern }`
+- `type Config struct` — Workers, MaxFileSize, MinFileSize, Format, Severity, NoGit, NoProgress, ExitCode, Include, Exclude, ConfigFile, IgnoreFile, Patterns
+- `func Default() Config` — returns runtime defaults (workers=8, max-file-size=1MB, severity=Low, format=text)
+- `func Load(path string, base Config) (Config, error)` — merges YAML file onto base; missing file is not an error
+- `func ResolvePatterns(cfg Config) ([]patterns.Pattern, error)` — applies disable/add from cfg onto built-in set
 
 When implementing subsequent phases, use these types exactly as defined. Do not
 redefine or alias them.
@@ -106,6 +114,39 @@ redefine or alias them.
 - Static fixture files go in `testdata/` inside the relevant package directory
 - For git integration tests: check `exec.LookPath("git")` and call `t.Skip` if absent
 - Every task must leave `go test -race ./...` green before moving to the next
+
+### Credential-shaped test fixtures
+
+**Never write a credential-shaped string as a literal in source.** GitHub push
+protection scans committed files and will block pushes containing strings that
+match real secret patterns — even in test files. This project is a secret
+scanner, so its test fixtures are especially likely to trigger this.
+
+The rule: if a test string would make a human think "that looks like a real
+credential", construct it at runtime using `strings.Repeat` or split-string
+concatenation. Never write the complete string as a single literal.
+
+```go
+// BAD — the complete literal triggers GitHub push protection
+// (not shown here for the same reason)
+
+// GOOD — constructed at runtime, no literal match
+matchLine: "sk_" + "live_" + strings.Repeat("a", 24),
+```
+
+Patterns that require this treatment in this codebase:
+
+| Pattern | Why |
+|---|---|
+| `stripe-live-secret` | `sk_live_` prefix triggers Stripe secret key detection |
+| `stripe-live-publishable` | `pk_live_` prefix triggers Stripe publishable key detection |
+| `sendgrid-api-key` | `SG.` + correct segment lengths triggers SendGrid detection |
+| `twilio-account-sid` | `AC` + 32 hex chars triggers Twilio SID detection |
+| `github-pat` | `ghp_` + 36 chars triggers GitHub PAT detection |
+| `github-oauth` | `gho_` + 36 chars triggers GitHub OAuth detection |
+
+Apply this to any new test fixture that could match a real-world secret format.
+When in doubt, construct it — the cost is one `strings.Repeat` call.
 
 ---
 
