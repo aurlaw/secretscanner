@@ -52,3 +52,5 @@ trace.out
 /testdata/tmp/
 node_modules/
 .phases/
+
+secretscanner
