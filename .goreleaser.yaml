@@ -1,0 +1,40 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: secretscanner
+    main: ./cmd/secretscanner
+    binary: secretscanner
+    ldflags:
+      - -X github.com/aurlaw/secretscanner/internal/version.Version={{.Version}}
+      - -X github.com/aurlaw/secretscanner/internal/version.Commit={{.Commit}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: checksums.txt
+
+release:
+  github:
+    owner: aurlaw
+    name: secretscanner
